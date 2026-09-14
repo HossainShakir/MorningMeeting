@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morning Meeting &amp; Dismissal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #EAF2EE;
+    --bg-deep: #DCEAE4;
+    --surface: #FFFFFF;
+    --ink: #24352F;
+    --ink-soft: #57685f;
+    --accent: #2F7A68;
+    --accent-dark: #205848;
+    --marigold: #E4A73C;
+    --line: #cfe0d7;
+
+    --mood-yellow: #E9C24A;
+    --mood-yellow-ink: #6b5210;
+    --mood-green: #6FAE73;
+    --mood-green-ink: #1f4a26;
+    --mood-blue: #5C87B0;
+    --mood-blue-ink: #1c3350;
+    --mood-red: #D8734C;
+    --mood-red-ink: #5c2712;
+
+    --radius-lg: 28px;
+    --radius-md: 18px;
+    --shadow: 0 10px 30px rgba(36,53,47,0.10);
+    --font-display: "Baloo 2", system-ui, sans-serif;
+    --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family: var(--font-body);
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%, var(--bg-deep), transparent 45%),
+      radial-gradient(circle at 90% 85%, var(--bg-deep), transparent 40%),
+      var(--bg);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+  }
+  button{ font-family:inherit; cursor:pointer; }
+  .screen{ display:none; flex:1; flex-direction:column; padding: clamp(16px,3vw,40px); max-width: 1000px; margin: 0 auto; width:100%; }
+  .screen.active{ display:flex; }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    max-width:1000px; width:100%; margin:0 auto; padding: 14px clamp(16px,3vw,40px) 0;
+  }
+  .brand{ font-family:var(--font-display); font-weight:700; font-size:1.15rem; color:var(--accent-dark); display:flex; align-items:center; gap:8px;}
+  .brand svg{ display:block; }
+  .icon-btn{
+    border:none; background: var(--surface); color:var(--accent-dark);
+    width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+    box-shadow: var(--shadow); transition: transform .15s ease;
+  }
+  .icon-btn:hover{ transform: translateY(-2px); }
+  .icon-btn:active{ transform: translateY(0); }
+  .icon-btn.on{ background: var(--accent); color:white; }
+  .topbar-controls{ display:flex; gap:10px; }
+
+  h1,h2,h3{ font-family: var(--font-display); margin:0 0 6px; line-height:1.1; }
+  p{ margin:0 0 10px; line-height:1.5; color: var(--ink-soft); }
+
+  .card{
+    background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow);
+    padding: clamp(20px,3vw,36px);
+  }
+
+  /* HOME */
+  #screen-home{ justify-content:center; align-items:center; text-align:center; gap:26px; }
+  .date-pill{
+    font-family: var(--font-display); font-weight:600; color: var(--accent-dark);
+    background: var(--surface); padding:8px 20px; border-radius: 999px; box-shadow: var(--shadow);
+    font-size: 1rem;
+  }
+  .hero-title{ font-size: clamp(2rem, 5vw, 3.2rem); color: var(--accent-dark); max-width: 14ch; }
+  .hero-sub{ max-width: 46ch; font-size:1.05rem; }
+  .home-actions{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+  .big-btn{
+    font-family: var(--font-display); font-weight:700; font-size:1.15rem;
+    border:none; padding: 20px 34px; border-radius: var(--radius-md); color:white;
+    background: var(--accent); box-shadow: var(--shadow); display:flex; align-items:center; gap:10px;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .big-btn:hover{ transform: translateY(-3px); background: var(--accent-dark); }
+  .big-btn.secondary{ background: var(--surface); color:var(--accent-dark); border:2px solid var(--line); }
+  .big-btn.secondary:hover{ background: var(--bg-deep); }
+  .roster-hint{ font-size:0.92rem; color:var(--ink-soft); }
+  .link-btn{ background:none; border:none; color:var(--accent-dark); text-decoration:underline; font-weight:700; font-size:0.95rem; }
+
+  /* PROGRESS DOTS */
+  .progress-row{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
+  .dot{
+    width:16px; height:16px; border-radius:50%; background: var(--line); border: 2px solid var(--line);
+    transition: all .2s ease;
+  }
+  .dot.done{ background: var(--accent); border-color: var(--accent); }
+  .dot.current{ border-color: var(--accent-dark); transform: scale(1.3); }
+  .dot.absent{ background: repeating-linear-gradient(45deg, var(--line), var(--line) 3px, transparent 3px, transparent 6px); }
+
+  /* STEP HEADER */
+  .step-header{ text-align:center; margin-bottom: 18px; }
+  .step-kicker{ font-family:var(--font-display); font-weight:700; color: var(--marigold); font-size:0.95rem; letter-spacing:.02em; }
+
+  /* SCHEDULE PREVIEW */
+  #screen-preview{ align-items:center; justify-content:center; text-align:center; gap:22px; }
+  .preview-row{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; margin: 6px 0 10px; }
+  .preview-chip{
+    background: var(--surface); border-radius: var(--radius-md); box-shadow: var(--shadow);
+    padding: 16px 18px; display:flex; flex-direction:column; align-items:center; gap:8px; width:120px;
+  }
+  .preview-chip svg{ width:38px; height:38px; }
+  .preview-chip span{ font-family: var(--font-display); font-weight:600; font-size:0.92rem; }
+
+  /* MOOD METER */
+  #screen-mood{ align-items:center; gap:14px; }
+  .mood-student-name{ font-size: clamp(1.8rem,4vw,2.6rem); text-align:center; color: var(--accent-dark); }
+  .mood-grid{
+    display:grid; grid-template-columns: 1fr 1fr; gap:16px; width:100%; max-width:640px; margin: 10px auto;
+  }
+  .mood-cell{
+    border:none; border-radius: var(--radius-md); padding: 26px 14px; display:flex; flex-direction:column;
+    align-items:center; gap:10px; box-shadow: var(--shadow); transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .mood-cell:hover{ transform: translateY(-4px) scale(1.02); }
+  .mood-cell:active{ transform: scale(.97); }
+  .mood-cell svg{ width:56px; height:56px; }
+  .mood-cell span{ font-family: var(--font-display); font-weight:700; font-size:1.05rem; }
+  .mood-cell.yellow{ background: var(--mood-yellow); color: var(--mood-yellow-ink); }
+  .mood-cell.green{ background: var(--mood-green); color: var(--mood-green-ink); }
+  .mood-cell.blue{ background: var(--mood-blue); color: white; }
+  .mood-cell.red{ background: var(--mood-red); color: white; }
+  .mood-axis-label{ font-size:0.78rem; color: var(--ink-soft); text-align:center; }
+  .absent-row{ text-align:center; margin-top:6px; }
+
+  /* SUMMARY */
+  .summary-bars{ display:flex; align-items:flex-end; gap:18px; justify-content:center; height:140px; margin: 20px 0; }
+  .summary-bar{ display:flex; flex-direction:column; align-items:center; gap:6px; width:70px; justify-content:flex-end; height:100%; }
+  .summary-bar .bar{ width:100%; border-radius: 10px 10px 4px 4px; min-height:6px; }
+  .summary-list{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:10px; }
+  .name-chip{ background: var(--bg-deep); border-radius: 999px; padding:6px 14px; font-size:0.9rem; font-weight:600; }
+
+  /* CHOICE */
+  #screen-choice{ align-items:center; justify-content:center; gap:26px; text-align:center; }
+  .choice-row{ display:flex; gap:24px; flex-wrap:wrap; justify-content:center; }
+  .choice-card{
+    background: var(--surface); border: 3px solid transparent; border-radius: var(--radius-lg); box-shadow: var(--shadow);
+    padding: 30px 40px; display:flex; flex-direction:column; align-items:center; gap:12px; width:220px;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .choice-card:hover{ transform: translateY(-4px); border-color: var(--accent); }
+  .choice-card svg{ width:70px; height:70px; }
+  .choice-card span{ font-family: var(--font-display); font-weight:700; font-size:1.25rem; color: var(--accent-dark); }
+
+  /* TRANSITION WARNING */
+  #screen-warning{ align-items:center; justify-content:center; text-align:center; gap:18px; }
+  .ring-wrap{ position:relative; width:150px; height:150px; }
+  .ring-wrap svg{ width:150px; height:150px; transform:rotate(-90deg); }
+  .ring-bg{ fill:none; stroke: var(--bg-deep); stroke-width:10; }
+  .ring-fg{ fill:none; stroke: var(--accent); stroke-width:10; stroke-linecap:round; transition: stroke-dashoffset 1s linear; }
+  .ring-count{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:2.4rem; color:var(--accent-dark); }
+
+  /* CALENDAR */
+  #screen-calendar{ align-items:center; gap:14px; }
+  .cal-card{ width:100%; max-width:520px; }
+  .cal-month{ text-align:center; font-size:1.6rem; color: var(--accent-dark); margin-bottom:12px;}
+  .cal-grid{ display:grid; grid-template-columns: repeat(7,1fr); gap:6px; }
+  .cal-dow{ text-align:center; font-weight:700; font-size:0.75rem; color:var(--ink-soft); padding-bottom:4px; }
+  .cal-day{
+    aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-weight:600; background: var(--bg); border:none; font-family:var(--font-body); font-size:0.95rem; color:var(--ink);
+  }
+  .cal-day.empty{ background:transparent; }
+  .cal-day.today{ background: var(--marigold); color:white; font-family:var(--font-display); box-shadow: 0 0 0 3px #fff inset; }
+  .cal-day.today.found{ background: var(--accent); }
+  .cal-hint{ text-align:center; font-weight:700; color:var(--accent-dark); font-family:var(--font-display); min-height:1.4em; }
+
+  /* WEATHER */
+  #screen-weather{ align-items:center; gap:16px; }
+  .weather-grid{ display:grid; grid-template-columns: repeat(3,1fr); gap:14px; max-width:520px; margin:8px auto; }
+  .weather-opt{
+    background: var(--surface); border: 3px solid transparent; border-radius: var(--radius-md); box-shadow: var(--shadow);
+    padding: 18px 10px; display:flex; flex-direction:column; align-items:center; gap:8px;
+  }
+  .weather-opt svg{ width:44px; height:44px; }
+  .weather-opt.selected{ border-color: var(--accent); background: var(--bg-deep); }
+  .weather-opt span{ font-size:0.85rem; font-weight:700; font-family:var(--font-display); }
+
+  /* MOVEMENT */
+  #screen-movement{ align-items:center; justify-content:center; text-align:center; gap:18px; }
+  .stretch-figure{ animation: sway 2.2s ease-in-out infinite; }
+  @keyframes sway{ 0%,100%{ transform: rotate(-6deg);} 50%{ transform: rotate(6deg);} }
+  .timer-big{ font-family:var(--font-display); font-size:3.4rem; color: var(--accent-dark); }
+
+  /* CLOSING */
+  #screen-closing{ align-items:center; justify-content:center; text-align:center; gap:16px; }
+  .confetti-wrap{ position:relative; width:100%; height:0; }
+  .confetti{ position:absolute; top:-10px; width:10px; height:14px; opacity:.9; animation: fall 2.6s linear forwards; border-radius:2px; }
+  @keyframes fall{ to{ transform: translateY(320px) rotate(360deg); opacity:0; } }
+
+  /* DISMISSAL */
+  #screen-dismiss-checklist .check-list{ display:flex; flex-direction:column; gap:10px; max-width:480px; margin: 10px auto; width:100%; }
+  .check-item{ display:flex; align-items:center; gap:12px; background: var(--surface); border-radius: 14px; padding:14px 16px; box-shadow: var(--shadow); font-weight:600; }
+  .check-item input{ width:22px; height:22px; accent-color: var(--accent); }
+  .safety-item{ display:flex; gap:12px; align-items:flex-start; background:#FFF7ED; border:1px solid #F1D8AE; border-radius:14px; padding:14px 16px; margin-bottom:10px; text-align:left; }
+  .safety-item svg{ flex-shrink:0; width:26px; height:26px; margin-top:2px; }
+  .handoff-list{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:14px 0; }
+  .handoff-chip{ background: var(--mood-blue); color:white; border-radius:999px; padding:8px 16px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .handoff-chip.done{ background: var(--accent); }
+  .handoff-chip button{ background:white; color:var(--accent-dark); border:none; border-radius:999px; width:22px; height:22px; font-weight:800; line-height:1; }
+
+  /* ROSTER MODAL */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(20,30,26,0.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal-backdrop.open{ display:flex; }
+  .modal{ background:var(--surface); border-radius: var(--radius-lg); padding: 26px; max-width:480px; width:100%; box-shadow: var(--shadow); max-height:85vh; overflow-y:auto; }
+  .modal h2{ color:var(--accent-dark); }
+  .roster-add{ display:flex; gap:8px; margin: 14px 0; }
+  .roster-add input[type=text]{ flex:1; padding:12px 14px; border-radius:12px; border:2px solid var(--line); font-family:inherit; font-size:1rem; }
+  .roster-add button{ background: var(--accent); color:white; border:none; border-radius:12px; padding: 0 18px; font-weight:700; }
+  .roster-list{ display:flex; flex-direction:column; gap:8px; }
+  .roster-row{ display:flex; align-items:center; gap:10px; background: var(--bg); border-radius:12px; padding:10px 12px; }
+  .roster-row span{ flex:1; font-weight:600; }
+  .roster-row label{ display:flex; align-items:center; gap:6px; font-size:0.8rem; color: var(--ink-soft); }
+  .roster-row button.del{ background:none; border:none; color:#b23b3b; font-weight:800; font-size:1.1rem; }
+  .modal-close{ margin-top:16px; width:100%; background: var(--accent); color:white; border:none; border-radius:12px; padding:12px; font-weight:700; font-family:var(--font-display); }
+  .empty-note{ font-size:0.9rem; color: var(--ink-soft); text-align:center; padding:10px 0; }
+
+  .continue-row{ display:flex; justify-content:center; gap:14px; margin-top:auto; padding-top:18px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .stretch-figure, .confetti{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#2F7A68"/><path d="M8 12.5l2.5 2.5L16 9" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Class Routines
+  </div>
+  <div class="topbar-controls">
+    <button class="icon-btn" id="btn-voice" title="Toggle spoken prompts">🔊</button>
+    <button class="icon-btn" id="btn-music" title="Toggle music">🎵</button>
+    <button class="icon-btn" id="btn-roster" title="Manage students">👤</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<section class="screen active" id="screen-home">
+  <div class="date-pill" id="today-pill"></div>
+  <h1 class="hero-title">Good morning, class!</h1>
+  <p class="hero-sub">Check in on the mood meter, then choose what we do first — calendar or weather.</p>
+  <div class="home-actions">
+    <button class="big-btn" id="start-morning">▶ Start Morning Meeting</button>
+    <button class="big-btn secondary" id="start-dismissal">🎒 Start Dismissal Routine</button>
+  </div>
+  <p class="roster-hint" id="roster-hint"></p>
+</section>
+
+<!-- SCHEDULE PREVIEW -->
+<section class="screen" id="screen-preview">
+  <h2>Here's our morning</h2>
+  <div class="preview-row">
+    <div class="preview-chip"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#E9C24A" stroke-width="2"/><path d="M8 13c1 1.5 2.3 2 4 2s3-.5 4-2" stroke="#6b5210" stroke-width="2" stroke-linecap="round"/></svg><span>Mood Meter</span></div>
+    <div class="preview-chip"><svg viewBox="0 0 24 24" fill="none"><path d="M9 4l6 8-6 8" stroke="#2F7A68" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="17" cy="12" r="0" /></svg><span>Choose</span></div>
+    <div class="preview-chip"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="#2F7A68" stroke-width="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke="#2F7A68" stroke-width="2" stroke-linecap="round"/></svg><span>Calendar</span></div>
+    <div class="preview-chip"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" fill="#E4A73C"/><g stroke="#E4A73C" stroke-width="2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2"/></g></svg><span>Weather</span></div>
+    <div class="preview-chip"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="6" r="2.4" fill="#5C87B0"/><path d="M12 9v6M8 12l4-3 4 3M9 21l3-6 3 6" stroke="#5C87B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Move &amp; Stretch</span></div>
+  </div>
+  <div class="continue-row"><button class="big-btn" id="preview-continue">Let's begin →</button></div>
+</section>
+
+<!-- MOOD METER -->
+<section class="screen" id="screen-mood">
+  <div class="step-header">
+    <div class="step-kicker">MOOD METER</div>
+    <div class="progress-row" id="mood-dots"></div>
+  </div>
+  <h2 class="mood-student-name" id="mood-name">—</h2>
+  <p style="text-align:center;">Tap how you feel right now.</p>
+  <div class="mood-grid">
+    <button class="mood-cell yellow" data-mood="yellow">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#F4D876"/><circle cx="9" cy="10" r="1.3" fill="#6b5210"/><circle cx="15" cy="10" r="1.3" fill="#6b5210"/><path d="M8 14.5c1.2 1.6 2.6 2.3 4 2.3s2.8-.7 4-2.3" stroke="#6b5210" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+      <span>Excited</span>
+    </button>
+    <button class="mood-cell green" data-mood="green">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#8FC392"/><circle cx="9" cy="10" r="1.3" fill="#1f4a26"/><circle cx="15" cy="10" r="1.3" fill="#1f4a26"/><path d="M8.5 14.5c1 .9 2.2 1.3 3.5 1.3s2.5-.4 3.5-1.3" stroke="#1f4a26" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+      <span>Calm</span>
+    </button>
+    <button class="mood-cell blue" data-mood="blue">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#7BA0C2"/><circle cx="9" cy="10" r="1.3" fill="#1c3350"/><circle cx="15" cy="10" r="1.3" fill="#1c3350"/><path d="M8.5 15.5c1-1 2.2-1.4 3.5-1.4s2.5.4 3.5 1.4" stroke="#1c3350" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+      <span>Sad / Tired</span>
+    </button>
+    <button class="mood-cell red" data-mood="red">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" fill="#E28D68"/><path d="M7.5 9.5l3 1M16.5 9.5l-3 1" stroke="#5c2712" stroke-width="1.8" stroke-linecap="round"/><path d="M8.5 16c1-1 2.2-1.4 3.5-1.4s2.5.4 3.5 1.4" stroke="#5c2712" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+      <span>Frustrated</span>
+    </button>
+  </div>
+  <div class="absent-row"><button class="link-btn" id="mark-absent">This student isn't here today</button></div>
+</section>
+
+<!-- MOOD SUMMARY -->
+<section class="screen" id="screen-mood-summary">
+  <div class="step-header"><div class="step-kicker">CHECK-IN COMPLETE</div></div>
+  <h2 style="text-align:center;">Nice check-in, everyone!</h2>
+  <div class="summary-bars" id="summary-bars"></div>
+  <div id="summary-absent"></div>
+  <div class="continue-row"><button class="big-btn" id="summary-continue">Continue →</button></div>
+</section>
+
+<!-- TRANSITION WARNING (reused) -->
+<section class="screen" id="screen-warning">
+  <div class="step-kicker" id="warning-kicker">COMING UP NEXT</div>
+  <h2 id="warning-label">Next activity</h2>
+  <div class="ring-wrap">
+    <svg viewBox="0 0 60 60"><circle class="ring-bg" cx="30" cy="30" r="26"/><circle class="ring-fg" id="ring-fg" cx="30" cy="30" r="26" stroke-dasharray="163.4" stroke-dashoffset="0"/></svg>
+    <div class="ring-count" id="ring-count">5</div>
+  </div>
+  <p>Let's get ready to switch.</p>
+  <button class="big-btn secondary" id="warning-skip">Skip wait →</button>
+</section>
+
+<!-- CHOICE -->
+<section class="screen" id="screen-choice">
+  <div class="step-kicker">YOUR CHOICE</div>
+  <h2>Calendar or weather first?</h2>
+  <div class="choice-row">
+    <button class="choice-card" data-choice="calendar">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="#2F7A68" stroke-width="2"/><path d="M3 9h18M8 3v4M16 3v4" stroke="#2F7A68" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Calendar</span>
+    </button>
+    <button class="choice-card" data-choice="weather">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" fill="#E4A73C"/><g stroke="#E4A73C" stroke-width="2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2"/></g></svg>
+      <span>Weather</span>
+    </button>
+  </div>
+</section>
+
+<!-- CALENDAR -->
+<section class="screen" id="screen-calendar">
+  <div class="step-kicker">CALENDAR TIME</div>
+  <div class="card cal-card">
+    <div class="cal-month" id="cal-month"></div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <div class="cal-hint" id="cal-hint">Can you find today's number?</div>
+  <div class="continue-row"><button class="big-btn" id="calendar-continue">Continue →</button></div>
+</section>
+
+<!-- WEATHER -->
+<section class="screen" id="screen-weather">
+  <div class="step-kicker">WEATHER TIME</div>
+  <h2>What's it like outside today?</h2>
+  <div class="weather-grid" id="weather-grid"></div>
+  <p id="weather-say" style="text-align:center; font-weight:700; color:var(--accent-dark); min-height:1.4em;"></p>
+  <div class="continue-row"><button class="big-btn" id="weather-continue">Continue →</button></div>
+</section>
+
+<!-- MOVEMENT BREAK -->
+<section class="screen" id="screen-movement">
+  <div class="step-kicker">MOVE &amp; STRETCH</div>
+  <h2>Let's shake it out!</h2>
+  <div class="stretch-figure">
+    <svg width="90" height="110" viewBox="0 0 90 110" fill="none"><circle cx="45" cy="18" r="14" fill="#5C87B0"/><path d="M45 32v40M45 42L15 22M45 42l30-20M45 72L20 105M45 72l25 33" stroke="#5C87B0" stroke-width="8" stroke-linecap="round"/></svg>
+  </div>
+  <div class="timer-big" id="movement-timer">0:30</div>
+  <div class="continue-row">
+    <button class="big-btn secondary" id="movement-skip">Skip</button>
+    <button class="big-btn" id="movement-done">All done →</button>
+  </div>
+</section>
+
+<!-- CLOSING -->
+<section class="screen" id="screen-closing">
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+  <h2 style="font-size:2.2rem;">Great morning, everyone! 🎉</h2>
+  <div class="summary-list" id="closing-names"></div>
+  <p>Let's line up for our next activity.</p>
+  <button class="big-btn" id="closing-home">Back to start</button>
+</section>
+
+<!-- DISMISSAL: WARNING is shared #screen-warning -->
+<section class="screen" id="screen-dismiss-checklist">
+  <div class="step-kicker">PACK-UP TIME</div>
+  <h2 style="text-align:center;">Let's pack up, in order</h2>
+  <div class="check-list" id="packup-list">
+    <label class="check-item"><input type="checkbox"> Put materials away</label>
+    <label class="check-item"><input type="checkbox"> Get backpack</label>
+    <label class="check-item"><input type="checkbox"> Pack belongings</label>
+    <label class="check-item"><input type="checkbox"> Put on coat / jacket</label>
+    <label class="check-item"><input type="checkbox"> Bathroom / hygiene check</label>
+  </div>
+  <div class="continue-row"><button class="big-btn" id="packup-continue">Continue →</button></div>
+</section>
+
+<section class="screen" id="screen-safety">
+  <div class="step-kicker">SAFETY LINE-UP CHECK</div>
+  <h2 style="text-align:center;">Before we line up</h2>
+  <div class="safety-item">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l9 4v6c0 5-3.8 8.5-9 10-5.2-1.5-9-5-9-10V6l9-4z" stroke="#B4791E" stroke-width="2"/></svg>
+    <div><strong>Clear reach zone.</strong> Confirm no small or mouthable objects are within reach.</div>
+  </div>
+  <div class="safety-item">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l9 4v6c0 5-3.8 8.5-9 10-5.2-1.5-9-5-9-10V6l9-4z" stroke="#B4791E" stroke-width="2"/></svg>
+    <div><strong>Fall-risk support.</strong> An adult is positioned beside any student who needs help on stairs or the walk to the bus.</div>
+  </div>
+  <div class="continue-row"><button class="big-btn" id="safety-continue">Confirmed, continue →</button></div>
+</section>
+
+<section class="screen" id="screen-handoff">
+  <div class="step-kicker">1:1 HANDOFF</div>
+  <h2 style="text-align:center;">Direct handoff, not the general line</h2>
+  <p style="text-align:center;" id="handoff-empty">No students are flagged for 1:1 transportation handoff. You can add this under student settings.</p>
+  <div class="handoff-list" id="handoff-list"></div>
+  <div class="continue-row"><button class="big-btn" id="handoff-continue">Continue →</button></div>
+</section>
+
+<section class="screen" id="screen-dismiss-close">
+  <div class="confetti-wrap" id="confetti-wrap-2"></div>
+  <h2 style="text-align:center; font-size:2.2rem;">See you tomorrow! 👋</h2>
+  <div class="summary-list" id="dismiss-names"></div>
+  <p style="text-align:center;">A calm goodbye now makes tomorrow's arrival easier too.</p>
+  <button class="big-btn" id="dismiss-home">Back to start</button>
+</section>
+
+<!-- ROSTER MODAL -->
+<div class="modal-backdrop" id="roster-modal">
+  <div class="modal">
+    <h2>Students</h2>
+    <p>Saved right in this browser. Toggle "1:1" for students with mandated transportation support.</p>
+    <div class="roster-add">
+      <input type="text" id="roster-input" placeholder="Add a student name">
+      <button id="roster-add-btn">Add</button>
+    </div>
+    <div class="roster-list" id="roster-list"></div>
+    <button class="modal-close" id="roster-close">Done</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- persistence ---------- */
+  const LS_ROSTER = "cr_roster_v1";
+  const LS_SETTINGS = "cr_settings_v1";
+  const todayKey = () => new Date().toISOString().slice(0,10);
+
+  function loadRoster(){
+    try{ return JSON.parse(localStorage.getItem(LS_ROSTER)) || []; }catch(e){ return []; }
+  }
+  function saveRoster(r){ localStorage.setItem(LS_ROSTER, JSON.stringify(r)); }
+  function loadSettings(){
+    try{ return Object.assign({voice:true, music:true}, JSON.parse(localStorage.getItem(LS_SETTINGS))||{}); }
+    catch(e){ return {voice:true, music:true}; }
+  }
+  function saveSettings(s){ localStorage.setItem(LS_SETTINGS, JSON.stringify(s)); }
+  function loadDay(key, fallback){
+    try{ const v = JSON.parse(localStorage.getItem(key)); return v===null||v===undefined ? fallback : v; }catch(e){ return fallback; }
+  }
+  function saveDay(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+  let roster = loadRoster();
+  let settings = loadSettings();
+
+  /* ---------- audio ---------- */
+  const Audio1 = {
+    ctx: null, nodes: [],
+    ensure(){ if(!this.ctx){ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); } if(this.ctx.state==='suspended'){ this.ctx.resume(); } },
+    stopPad(){ this.nodes.forEach(n=>{ try{n.osc.stop();}catch(e){} try{n.lfo.stop();}catch(e){} }); this.nodes=[]; },
+    playPad(freqs, vol){
+      if(!settings.music) return;
+      this.ensure(); this.stopPad();
+      const now = this.ctx.currentTime;
+      freqs.forEach((f,i)=>{
+        const osc = this.ctx.createOscillator(); osc.type = i===0 ? 'sine' : 'triangle'; osc.frequency.value = f;
+        const gain = this.ctx.createGain(); gain.gain.value = 0;
+        osc.connect(gain).connect(this.ctx.destination);
+        osc.start();
+        gain.gain.linearRampToValueAtTime(vol/(i*0.8+1), now+2);
+        const lfo = this.ctx.createOscillator(); lfo.frequency.value = 0.08+i*0.02;
+        const lfoGain = this.ctx.createGain(); lfoGain.gain.value = vol*0.25;
+        lfo.connect(lfoGain).connect(gain.gain); lfo.start();
+        this.nodes.push({osc, gain, lfo});
+      });
+    },
+    chime(freqs, dur){
+      if(!settings.music) return;
+      this.ensure(); const now = this.ctx.currentTime;
+      freqs.forEach((f,i)=>{
+        const osc = this.ctx.createOscillator(); osc.type='triangle'; osc.frequency.value=f;
+        const g = this.ctx.createGain(); g.gain.value = 0.0001;
+        osc.connect(g).connect(this.ctx.destination);
+        const t = now + i*dur;
+        osc.start(t);
+        g.gain.exponentialRampToValueAtTime(0.18, t+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+        osc.stop(t+dur+0.05);
+      });
+    }
+  };
+  const MUSIC = {
+    meeting: ()=>Audio1.playPad([196,247,294], 0.05),
+    choice: ()=>Audio1.playPad([220,277,330], 0.045),
+    calm: ()=>Audio1.playPad([174,220,262], 0.045),
+    celebrate: ()=>Audio1.chime([523,659,784,1046], 0.16),
+    tap: ()=>Audio1.chime([660,880], 0.09),
+    stop: ()=>Audio1.stopPad()
+  };
+
+  function speak(text){
+    if(!settings.voice) return;
+    try{
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.92; u.pitch = 1.05;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  /* ---------- top bar controls ---------- */
+  const btnVoice = document.getElementById('btn-voice');
+  const btnMusic = document.getElementById('btn-music');
+  function refreshToggles(){
+    btnVoice.classList.toggle('on', settings.voice);
+    btnMusic.classList.toggle('on', settings.music);
+  }
+  btnVoice.addEventListener('click', ()=>{ settings.voice = !settings.voice; saveSettings(settings); refreshToggles(); });
+  btnMusic.addEventListener('click', ()=>{ settings.music = !settings.music; if(!settings.music) MUSIC.stop(); saveSettings(settings); refreshToggles(); });
+  refreshToggles();
+
+  /* ---------- roster modal ---------- */
+  const rosterModal = document.getElementById('roster-modal');
+  document.getElementById('btn-roster').addEventListener('click', ()=>{ renderRosterModal(); rosterModal.classList.add('open'); });
+  document.getElementById('roster-close').addEventListener('click', ()=>{ rosterModal.classList.remove('open'); updateHomeHint(); });
+  document.getElementById('roster-add-btn').addEventListener('click', addRosterStudent);
+  document.getElementById('roster-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addRosterStudent(); });
+
+  function addRosterStudent(){
+    const input = document.getElementById('roster-input');
+    const name = input.value.trim();
+    if(!name) return;
+    roster.push({name, oneToOne:false});
+    saveRoster(roster);
+    input.value='';
+    renderRosterModal();
+  }
+  function renderRosterModal(){
+    const list = document.getElementById('roster-list');
+    list.innerHTML = '';
+    if(roster.length===0){
+      list.innerHTML = '<p class="empty-note">No students yet. Add your class above.</p>';
+      return;
+    }
+    roster.forEach((s, idx)=>{
+      const row = document.createElement('div');
+      row.className = 'roster-row';
+      row.innerHTML = `
+        <span>${escapeHtml(s.name)}</span>
+        <label><input type="checkbox" ${s.oneToOne?'checked':''} data-idx="${idx}" class="oneone"> 1:1</label>
+        <button class="del" data-idx="${idx}">✕</button>
+      `;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.del').forEach(b=> b.addEventListener('click', ()=>{
+      roster.splice(parseInt(b.dataset.idx),1); saveRoster(roster); renderRosterModal();
+    }));
+    list.querySelectorAll('.oneone').forEach(c=> c.addEventListener('change', ()=>{
+      roster[parseInt(c.dataset.idx)].oneToOne = c.checked; saveRoster(roster);
+    }));
+  }
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function updateHomeHint(){
+    const hint = document.getElementById('roster-hint');
+    hint.textContent = roster.length ? `${roster.length} student${roster.length>1?'s':''} saved · tap the person icon to edit` : 'Tap the person icon above to add your students first';
+  }
+
+  /* ---------- screen navigation ---------- */
+  function goTo(id){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  /* ---------- home ---------- */
+  const dateFmt = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+  document.getElementById('today-pill').textContent = dateFmt;
+  updateHomeHint();
+
+  document.getElementById('start-morning').addEventListener('click', ()=>{
+    if(roster.length===0){ document.getElementById('btn-roster').click(); return; }
+    MUSIC.meeting();
+    speak("Good morning! Let's check our schedule.");
+    goTo('screen-preview');
+  });
+  document.getElementById('preview-continue').addEventListener('click', ()=>{
+    startWarning('screen-mood', 'Mood Meter', "In a few seconds we'll start the mood meter.", ()=>{ initMoodMeter(); });
+  });
+
+  /* ---------- transition warning (shared) ---------- */
+  let warningTimer = null;
+  function startWarning(nextScreen, label, spokenIntro, onArrive, seconds){
+    seconds = seconds || 5;
+    goTo('screen-warning');
+    document.getElementById('warning-label').textContent = label;
+    speak(spokenIntro);
+    const ringFg = document.getElementById('ring-fg');
+    const ringCount = document.getElementById('ring-count');
+    const circumference = 163.4;
+    let remaining = seconds;
+    ringFg.style.strokeDasharray = circumference;
+    ringFg.style.strokeDashoffset = 0;
+    ringCount.textContent = remaining;
+    clearInterval(warningTimer);
+    function tick(){
+      remaining -= 1;
+      const offset = circumference * (1 - (remaining/seconds));
+      ringFg.style.strokeDashoffset = offset;
+      ringCount.textContent = Math.max(remaining,0);
+      if(remaining<=0){
+        clearInterval(warningTimer);
+        goTo(nextScreen);
+        if(onArrive) onArrive();
+      }
+    }
+    warningTimer = setInterval(tick, 1000);
+    document.getElementById('warning-skip').onclick = ()=>{
+      clearInterval(warningTimer);
+      goTo(nextScreen);
+      if(onArrive) onArrive();
+    };
+  }
+
+  /* ---------- mood meter ---------- */
+  let moodOrder = [];
+  let moodIndex = 0;
+  let moodResults = {};
+
+  function initMoodMeter(){
+    const key = 'cr_order_' + todayKey();
+    let saved = loadDay(key, null);
+    if(!saved || saved.length !== roster.length){
+      saved = roster.map(s=>s.name);
+      for(let i=saved.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [saved[i],saved[j]]=[saved[j],saved[i]];
+      }
+      saveDay(key, saved);
+    }
+    moodOrder = saved;
+    moodIndex = 0;
+    moodResults = loadDay('cr_mood_' + todayKey(), {});
+    renderMoodDots();
+    showCurrentStudent();
+    MUSIC.meeting();
+  }
+
+  function renderMoodDots(){
+    const wrap = document.getElementById('mood-dots');
+    wrap.innerHTML = '';
+    moodOrder.forEach((name, i)=>{
+      const d = document.createElement('div');
+      d.className = 'dot';
+      if(moodResults[name]==='absent') d.classList.add('absent');
+      else if(moodResults[name]) d.classList.add('done');
+      if(i===moodIndex) d.classList.add('current');
+      wrap.appendChild(d);
+    });
+  }
+
+  function showCurrentStudent(){
+    if(moodIndex >= moodOrder.length){
+      finishMoodMeter();
+      return;
+    }
+    const name = moodOrder[moodIndex];
+    document.getElementById('mood-name').textContent = name;
+    speak(`It's ${name}'s turn. How are you feeling?`);
+    renderMoodDots();
+  }
+
+  document.querySelectorAll('.mood-cell').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const name = moodOrder[moodIndex];
+      if(!name) return;
+      moodResults[name] = btn.dataset.mood;
+      saveDay('cr_mood_' + todayKey(), moodResults);
+      MUSIC.tap();
+      btn.style.transform = 'scale(0.92)';
+      setTimeout(()=>{ btn.style.transform=''; moodIndex++; showCurrentStudent(); }, 380);
+    });
+  });
+  document.getElementById('mark-absent').addEventListener('click', ()=>{
+    const name = moodOrder[moodIndex];
+    if(!name) return;
+    moodResults[name] = 'absent';
+    saveDay('cr_mood_' + todayKey(), moodResults);
+    moodIndex++; showCurrentStudent();
+  });
+
+  function finishMoodMeter(){
+    const counts = {yellow:0, green:0, blue:0, red:0};
+    const absentNames = [];
+    moodOrder.forEach(n=>{
+      const v = moodResults[n];
+      if(v==='absent') absentNames.push(n);
+      else if(v) counts[v]++;
+    });
+    const bars = document.getElementById('summary-bars');
+    bars.innerHTML = '';
+    const colorVar = {yellow:'var(--mood-yellow)', green:'var(--mood-green)', blue:'var(--mood-blue)', red:'var(--mood-red)'};
+    const labels = {yellow:'Excited', green:'Calm', blue:'Sad/Tired', red:'Frustrated'};
+    const max = Math.max(1, ...Object.values(counts));
+    Object.keys(counts).forEach(k=>{
+      const col = document.createElement('div'); col.className='summary-bar';
+      const bar = document.createElement('div'); bar.className='bar';
+      bar.style.height = (10 + (counts[k]/max)*110) + 'px';
+      bar.style.background = colorVar[k];
+      col.appendChild(bar);
+      const lab = document.createElement('div'); lab.textContent = `${labels[k]} (${counts[k]})`; lab.style.fontSize='0.78rem'; lab.style.fontWeight='700';
+      col.appendChild(lab);
+      bars.appendChild(col);
+    });
+    const absDiv = document.getElementById('summary-absent');
+    absDiv.innerHTML = absentNames.length ? `<p style="text-align:center;">Not here today: ${absentNames.map(n=>`<span class="name-chip">${escapeHtml(n)}</span>`).join(' ')}</p>` : '';
+    goTo('screen-mood-summary');
+  }
+
+  document.getElementById('summary-continue').addEventListener('click', ()=>{
+    startWarning('screen-choice', 'Choice Time', "In a moment, we'll choose calendar or weather.", ()=>{ MUSIC.choice(); speak("Calendar or weather first? Your choice!"); });
+  });
+
+  /* ---------- choice + calendar + weather ---------- */
+  let activityOrder = [];
+  document.querySelectorAll('.choice-card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      const first = card.dataset.choice;
+      const second = first === 'calendar' ? 'weather' : 'calendar';
+      activityOrder = [first, second];
+      MUSIC.tap();
+      runActivity(0);
+    });
+  });
+
+  function runActivity(idx){
+    if(idx >= activityOrder.length){
+      startWarning('screen-movement', 'Move & Stretch', "Time to move and stretch!", ()=>{ startMovementBreak(); });
+      return;
+    }
+    const act = activityOrder[idx];
+    const label = act === 'calendar' ? 'Calendar' : 'Weather';
+    startWarning('screen-' + act, label, `In a few seconds, we'll do ${label.toLowerCase()}.`, ()=>{
+      MUSIC.calm();
+      if(act === 'calendar'){ initCalendar(); document.getElementById('calendar-continue').onclick = ()=> runActivity(idx+1); }
+      else { initWeather(); document.getElementById('weather-continue').onclick = ()=> runActivity(idx+1); }
+    });
+  }
+
+  function initCalendar(){
+    const now = new Date();
+    const year = now.getFullYear(), month = now.getMonth();
+    document.getElementById('cal-month').textContent = now.toLocaleDateString(undefined,{month:'long', year:'numeric'});
+    const grid = document.getElementById('cal-grid');
+    grid.innerHTML = '';
+    ['S','M','T','W','T','F','S'].forEach(d=>{
+      const el = document.createElement('div'); el.className='cal-dow'; el.textContent=d; grid.appendChild(el);
+    });
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    for(let i=0;i<firstDay;i++){ const e=document.createElement('div'); e.className='cal-day empty'; grid.appendChild(e); }
+    for(let d=1; d<=daysInMonth; d++){
+      const cell = document.createElement('button');
+      cell.className = 'cal-day';
+      cell.textContent = d;
+      if(d===now.getDate()){ cell.classList.add('today'); }
+      cell.addEventListener('click', ()=>{
+        if(d===now.getDate()){
+          cell.classList.add('found');
+          document.getElementById('cal-hint').textContent = `Yes! Today is ${now.toLocaleDateString(undefined,{weekday:'long'})}, ${now.toLocaleDateString(undefined,{month:'long'})} ${d}.`;
+          MUSIC.chime ? Audio1.chime([784,988,1174], 0.14) : null;
+          speak(`Today is ${now.toLocaleDateString(undefined,{weekday:'long'})}.`);
+        } else {
+          document.getElementById('cal-hint').textContent = "Keep looking for today's highlighted number!";
+        }
+      });
+      grid.appendChild(cell);
+    }
+    document.getElementById('cal-hint').textContent = "Can you find today's number?";
+    speak(`Today is ${now.toLocaleDateString(undefined,{weekday:'long'})}. Let's find it on the calendar.`);
+  }
+
+  const WEATHER_OPTIONS = [
+    {key:'sunny', label:'Sunny', svg:'<circle cx="12" cy="12" r="5" fill="#E4A73C"/><g stroke="#E4A73C" stroke-width="2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2"/></g>'},
+    {key:'cloudy', label:'Cloudy', svg:'<path d="M7 17a4 4 0 010-8 5 5 0 019.6-1.5A3.5 3.5 0 0117.5 17H7z" fill="#A9B7C4"/>'},
+    {key:'rainy', label:'Rainy', svg:'<path d="M7 13a4 4 0 010-8 5 5 0 019.6-1.5A3.5 3.5 0 0117.5 13H7z" fill="#8FA6B8"/><g stroke="#5C87B0" stroke-width="2" stroke-linecap="round"><path d="M8 17l-1 3M13 17l-1 3M18 17l-1 3"/></g>'},
+    {key:'snowy', label:'Snowy', svg:'<path d="M7 12a4 4 0 010-8 5 5 0 019.6-1.5A3.5 3.5 0 0117.5 12H7z" fill="#C7D6E0"/><g fill="#5C87B0"><circle cx="8" cy="18" r="1.4"/><circle cx="13" cy="19" r="1.4"/><circle cx="17" cy="17" r="1.4"/></g>'},
+    {key:'windy', label:'Windy', svg:'<g stroke="#6FAE73" stroke-width="2" stroke-linecap="round" fill="none"><path d="M3 9h11a2.5 2.5 0 100-5"/><path d="M3 14h15a2.5 2.5 0 110 5"/></g>'},
+    {key:'stormy', label:'Stormy', svg:'<path d="M7 12a4 4 0 010-8 5 5 0 019.6-1.5A3.5 3.5 0 0117.5 12H7z" fill="#8992A6"/><path d="M12 13l-3 5h3l-2 4 5-6h-3l2-3z" fill="#E4A73C"/>'}
+  ];
+  function initWeather(){
+    const grid = document.getElementById('weather-grid');
+    grid.innerHTML = '';
+    document.getElementById('weather-say').textContent = '';
+    WEATHER_OPTIONS.forEach(opt=>{
+      const btn = document.createElement('button');
+      btn.className = 'weather-opt';
+      btn.innerHTML = `<svg viewBox="0 0 24 24">${opt.svg}</svg><span>${opt.label}</span>`;
+      btn.addEventListener('click', ()=>{
+        grid.querySelectorAll('.weather-opt').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        document.getElementById('weather-say').textContent = `It's a ${opt.label.toLowerCase()} day!`;
+        MUSIC.tap();
+        speak(`It's a ${opt.label.toLowerCase()} day!`);
+      });
+      grid.appendChild(btn);
+    });
+    speak("What's the weather like today? Pick a picture.");
+  }
+
+  /* ---------- movement break ---------- */
+  let moveTimer = null;
+  function startMovementBreak(){
+    let remaining = 30;
+    document.getElementById('movement-timer').textContent = '0:30';
+    clearInterval(moveTimer);
+    speak("Let's stretch and move for thirty seconds.");
+    moveTimer = setInterval(()=>{
+      remaining--;
+      const m = Math.floor(remaining/60), s = remaining%60;
+      document.getElementById('movement-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+      if(remaining<=0){ clearInterval(moveTimer); finishMorning(); }
+    },1000);
+  }
+  document.getElementById('movement-skip').addEventListener('click', ()=>{ clearInterval(moveTimer); finishMorning(); });
+  document.getElementById('movement-done').addEventListener('click', ()=>{ clearInterval(moveTimer); finishMorning(); });
+
+  function finishMorning(){
+    startWarning('screen-closing', 'Great Job!', "Great job today, everyone!", ()=>{
+      MUSIC.celebrate();
+      const present = moodOrder.filter(n=> moodResults[n] && moodResults[n]!=='absent');
+      document.getElementById('closing-names').innerHTML = present.map(n=>`<span class="name-chip">${escapeHtml(n)}</span>`).join('');
+      launchConfetti('confetti-wrap');
+      speak("Wonderful morning meeting, everyone! Let's line up.");
+    }, 3);
+  }
+  document.getElementById('closing-home').addEventListener('click', ()=>{ MUSIC.stop(); goTo('screen-home'); });
+
+  function launchConfetti(wrapId){
+    const wrap = document.getElementById(wrapId);
+    wrap.innerHTML = '';
+    const colors = ['#E9C24A','#6FAE73','#5C87B0','#D8734C','#E4A73C'];
+    for(let i=0;i<24;i++){
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = (Math.random()*100)+'%';
+      c.style.background = colors[i%colors.length];
+      c.style.animationDelay = (Math.random()*0.5)+'s';
+      wrap.appendChild(c);
+    }
+    setTimeout(()=>{ wrap.innerHTML=''; }, 3200);
+  }
+
+  /* ---------- dismissal routine ---------- */
+  document.getElementById('start-dismissal').addEventListener('click', ()=>{
+    if(roster.length===0){ document.getElementById('btn-roster').click(); return; }
+    startWarning('screen-dismiss-checklist', 'Pack-up Time', "In a few seconds it will be time to pack up.", ()=>{
+      MUSIC.calm();
+      document.querySelectorAll('#packup-list input[type=checkbox]').forEach(cb=> cb.checked=false);
+    }, 6);
+  });
+  document.getElementById('packup-continue').addEventListener('click', ()=>{ goTo('screen-safety'); MUSIC.tap(); });
+  document.getElementById('safety-continue').addEventListener('click', ()=>{
+    renderHandoff();
+    goTo('screen-handoff');
+  });
+
+  function renderHandoff(){
+    const flagged = roster.filter(s=>s.oneToOne).map(s=>s.name);
+    const list = document.getElementById('handoff-list');
+    const empty = document.getElementById('handoff-empty');
+    list.innerHTML = '';
+    empty.style.display = flagged.length ? 'none' : 'block';
+    const key = 'cr_handoff_' + todayKey();
+    let done = loadDay(key, {});
+    flagged.forEach(name=>{
+      const chip = document.createElement('div');
+      chip.className = 'handoff-chip' + (done[name] ? ' done' : '');
+      chip.innerHTML = `<span>${escapeHtml(name)}</span><button>${done[name] ? '✓' : '→'}</button>`;
+      chip.querySelector('button').addEventListener('click', ()=>{
+        done[name] = !done[name];
+        saveDay(key, done);
+        renderHandoff();
+      });
+      list.appendChild(chip);
+    });
+  }
+  document.getElementById('handoff-continue').addEventListener('click', ()=>{
+    startWarning('screen-dismiss-close', 'Goodbye!', "Let's do our goodbye routine.", ()=>{
+      MUSIC.celebrate();
+      const present = roster.map(s=>s.name);
+      document.getElementById('dismiss-names').innerHTML = present.map(n=>`<span class="name-chip">${escapeHtml(n)}</span>`).join('');
+      launchConfetti('confetti-wrap-2');
+      speak("Great job today! See you tomorrow!");
+    }, 3);
+  });
+  document.getElementById('dismiss-home').addEventListener('click', ()=>{ MUSIC.stop(); goTo('screen-home'); });
+
+})();
+</script>
+</body>
+</html>
